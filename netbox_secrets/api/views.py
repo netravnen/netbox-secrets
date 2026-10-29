@@ -177,6 +177,8 @@ class SecretViewSet(NetBoxModelViewSet):
     queryset = Secret.objects.select_related('role', 'assigned_object_type').prefetch_related('tags')
     serializer_class = serializers.SecretSerializer
     filterset_class = filtersets.SecretFilterSet
+    # A background job would keep the plaintext and the X-Session-Key header in Redis.
+    background_enabled = False
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
