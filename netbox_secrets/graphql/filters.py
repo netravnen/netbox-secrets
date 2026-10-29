@@ -38,7 +38,7 @@ class SecretRoleFilter(OrganizationalModelFilter):
 
 @register_filter(Secret, lookups=True)
 class SecretFilter(PrimaryModelFilter, ContactFilterMixin):
-    name: StrFilterLookup[str] | None = strawberry_django.filter_field()
+    name: StrFilterLookup | None = strawberry_django.filter_field()
     role: Annotated[
         'SecretRoleFilter', strawberry.lazy('netbox_secrets.graphql.filters')
     ] | None = strawberry_django.filter_field()
