@@ -4,7 +4,7 @@ from django.contrib import messages
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.contrib.contenttypes.models import ContentType
 from django.core.exceptions import PermissionDenied
-from django.db import transaction
+from django.db import router, transaction
 from django.db.models import BooleanField, Case, Value, When
 from django.shortcuts import get_object_or_404, redirect, render
 from django.utils.html import escape
@@ -261,8 +261,12 @@ class SecretEditView(generic.ObjectEditView):
 
         if form.is_valid():
             logger.debug("Form validation was successful")
+
+            # Record changelog message (if any)
+            obj._changelog_message = form.cleaned_data.pop('changelog_message', '')
+
             try:
-                with transaction.atomic():
+                with transaction.atomic(using=router.db_for_write(self.queryset.model)):
                     object_created = form.instance.pk is None
                     obj = form.save(commit=False)
 
@@ -306,6 +310,10 @@ class SecretEditView(generic.ObjectEditView):
 
                     obj.save()
                     form.save_m2m()
+
+                    # Check that the new object conforms with any assigned object-level permissions
+                    if not self.queryset.filter(pk=obj.pk).exists():
+                        raise PermissionsViolation()
 
                     msg = '{} {}'.format(
                         'Created' if object_created else 'Modified',
